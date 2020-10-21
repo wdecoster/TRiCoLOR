@@ -8,8 +8,8 @@ from argparse import HelpFormatter
 
 def main():
 
-	
-	parser = argparse.ArgumentParser(prog='TRiCoLOR', description='''TRiCoLOR: Tandem Repeats Caller fOr LOng Reads''', epilog='''This program was developed by Davide Bolognini and Tobias Rausch at the European Molecular Biology Laboratory/European Bioinformatic Institute (EMBL/EBI)''', formatter_class=CustomFormat) 
+
+	parser = argparse.ArgumentParser(prog='TRiCoLOR', description='''TRiCoLOR: Tandem Repeats Caller fOr LOng Reads''', epilog='''This program was developed by Davide Bolognini and Tobias Rausch at the European Molecular Biology Laboratory/European Bioinformatic Institute (EMBL/EBI)''', formatter_class=CustomFormat)
 
 	subparsers = parser.add_subparsers(title='modules', dest='command', metavar='SENSoR, REFER, SAGE, ApP')
 
@@ -18,8 +18,9 @@ def main():
 	parser_sensor = subparsers.add_parser('SENSoR', help='Shannon ENtropy ScanneR. Scan haplotype-resolved BAM, calculate Shannon entropy along chromosomes and identify putative repetitive regions')
 
 	required = parser_sensor.add_argument_group('Required I/O arguments')
-
-	required.add_argument('-bam', '--bamfile', help='haplotype-resolved BAM', metavar='BAM', nargs='+', action='append', required=True)
+    mrequired = required.add_mutually_exclusive_group(required=True)
+	mrequired.add_argument('-bam', '--bamfile', help='haplotype-resolved BAM', metavar='BAM', nargs='+', action='append')
+    mrequired.add_argument('-sbam', '--single_bamfile', help='BAM with H1/H2 tags', metavar='BAM',)
 	required.add_argument('-o', '--output', metavar='folder', help='output folder',required=True)
 
 	algorithm = parser_sensor.add_argument_group('Parameters for BAM scanning')
@@ -46,7 +47,10 @@ def main():
 
 	required.add_argument('-g','--genome', help='reference genome', metavar='FASTA',required=True)
 	required.add_argument('-bed','--bedfile', help='BED generated with SENSoR or equivalent proprietary BED containing putative repetitive regions', metavar='BED',required=True)
-	required.add_argument('-bam','--bamfile', help='haplotype-resolved BAM',metavar='BAM', nargs='+', action='append', required=True)
+    mrequired = required.add_mutually_exclusive_group(required=True)
+	mrequired.add_argument('-bam', '--bamfile', help='haplotype-resolved BAM', metavar='BAM', nargs='+', action='append')
+    mrequired.add_argument('-sbam', '--single_bamfile', help='BAM with H1/H2 tags', metavar='BAM',)
+
 	required.add_argument('-o','--output', help='output folder',metavar='folder',required=True)
 
 	consensus = parser_refer.add_argument_group('Consensus-building parameters')
@@ -65,13 +69,13 @@ def main():
 	algorithm.add_argument('-e','--editdistance', type=int, help='allowed number of insertions, deletions or substitutions in repetitions [1]',metavar='',default=1)
 	algorithm.add_argument('--overlapping', help='look for overlapping repeated motif', action='store_true')
 	algorithm.add_argument('--precisemotif', help='coherce -m/--motif to find only repetitions with specified motif size', action='store_true')
-	algorithm.add_argument('--precisetimes', help='coherce -t/--times to find only repetitions occuring specified number of times', action='store_true')	
+	algorithm.add_argument('--precisetimes', help='coherce -t/--times to find only repetitions occuring specified number of times', action='store_true')
 
 	utilities = parser_refer.add_argument_group('Coverage and soft clipping tresholds')
 
 	utilities.add_argument('-c', '--coverage', type=int, help='minimum number of reads to call a consensus sequence for region [5]', metavar='', default=5)
 	utilities.add_argument('-sc', '--softclipping', type=float, help='maximum percentage of soft-clipped bases allowed in consensus sequences [40.0]', metavar='', default=40.0)
-	
+
 	additionals = parser_refer.add_argument_group('Additional parameters')
 
 	additionals.add_argument('--samplename', help='sample name in BCF header [SAMPLE]', metavar='',default='SAMPLE')
@@ -121,14 +125,14 @@ def main():
 
 	required.add_argument('-g', '--genome', metavar='FASTA', help='reference genome', required=True)
 	required.add_argument('-bam','--bamfile', help='haplotype-resolved consensus BAM generated with REFER',metavar='BAM', nargs='+', action='append', required=True)
-	required.add_argument('-bed','--bedfile', metavar='BED', help='propietary BED (CHROM,START,END,LABEL) with regions to plot',required=True)	
+	required.add_argument('-bed','--bedfile', metavar='BED', help='propietary BED (CHROM,START,END,LABEL) with regions to plot',required=True)
 	required.add_argument('-o', '--output', metavar='folder', help='output folder',required=True)
 
 	tables = parser_app.add_argument_group('BED with repetitions to highlight')
 
 	tables.add_argument('-gb', '--genomebed', metavar='', default=None, help='BED generated with REFER with repetitions in reference[None]')
 	tables.add_argument('-hb', '--haplotypebed', metavar='', default=None, help='one or more ordered BED generated with REFER with repetitions in BAM to -bam/--bamfile [None]',nargs='+', action='append')
-	
+
 	parser_app.set_defaults(func=run_subtool)
 
 	args = parser.parse_args()
@@ -148,7 +152,7 @@ class CustomFormat(HelpFormatter):
 
 			default = self._get_default_metavar_for_positional(action)
 			metavar, = self._metavar_formatter(action, default)(1)
-			
+
 			return metavar
 
 		else:
@@ -163,7 +167,7 @@ class CustomFormat(HelpFormatter):
 
 				default = self._get_default_metavar_for_optional(action)
 				args_string = self._format_args(action, default)
-				
+
 				for option_string in action.option_strings:
 
 					parts.append(option_string)
@@ -186,9 +190,9 @@ def BAM(s):
 	try:
 
 		x,y= map(str, s.split(','))
-		
+
 		return x,y
-	
+
 	except:
 
 		raise argparse.ArgumentTypeError('BAM files to SAGE -bam/--bamfile must be given as couples of BAM files: BAM1h1,BAM1h2 BAM2h1,BAM2h2 ...')
@@ -200,7 +204,7 @@ def run_subtool(parser, args):
 	if args.command == 'SENSoR': #Shannon ENtropy ScanneR
 
 		from .SENSoR import SENSoR as submodule
-	
+
 	elif args.command == 'REFER': #REpeats FindER
 
 		from .REFER import REFER as submodule
