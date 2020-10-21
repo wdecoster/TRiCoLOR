@@ -81,12 +81,13 @@ def main():
 	additionals.add_argument('--samplename', help='sample name in BCF header [SAMPLE]', metavar='',default='SAMPLE')
 	additionals.add_argument('--readstype', help='long reads technology (ONT, PB) [ONT]', metavar='', default='ONT', choices=['ONT', 'PB'])
 	additionals.add_argument('--threads', help='number of cores [1]',metavar='', default=1, type=int)
+	additionals.add_argument('--mmidir', help='if provided, store (and read) minimap2 indexes for the processed chromosomes into a different directory', metavar='')
 
 	parser_refer.set_defaults(func=run_subtool)
 
 	## SAGE ##
 
-	parser_sage = subparsers.add_parser('SAGE', help='SAmple GEnotyper. Derive the rough genotype of repetitive regions from individuals related to the one genotyped with REFER')
+	parser_sage = subparsers.add_parser('SAGE', help='SAmple GEnotyper. Derive the rough genotype of repetitive regions from individuals related to the one genotyped with refer')
 
 	required = parser_sage.add_argument_group('Required I/O arguments')
 
@@ -114,6 +115,7 @@ def main():
 	additionals.add_argument('--readstype', help='long reads technology (ONT, PB) [ONT]', metavar='', default='ONT', choices=['ONT', 'PB'])
 	additionals.add_argument('--threads', help='number of cores [1]',metavar='', default=1, type=int)
 	additionals.add_argument('--store', help=argparse.SUPPRESS, action='store_true')
+	additionals.add_argument('--mmidir', help='if provided, store (and read) minimap2 indexes for the processed chromosomes into a different directory', metavar='')
 
 	parser_sage.set_defaults(func=run_subtool)
 
@@ -134,10 +136,36 @@ def main():
 	tables.add_argument('-hb', '--haplotypebed', metavar='', default=None, help='one or more ordered BED generated with REFER with repetitions in BAM to -bam/--bamfile [None]',nargs='+', action='append')
 
 	parser_app.set_defaults(func=run_subtool)
+	
+	#print help if no subcommand nor --help provided
+	
+	if len(sys.argv)==1:
+    	
+		parser.print_help(sys.stderr)
+		sys.exit(1)
+
+	
+	#case-insensitive submodules
+	
+	if sys.argv[1].lower() == "sensor":
+
+		sys.argv[1] = "SENSoR"
+
+	elif sys.argv[1].lower() == "refer":
+
+		sys.argv[1] = "REFER"
+
+	elif sys.argv[1].lower() == "sage":
+
+		sys.argv[1] = "SAGE"
+
+	elif sys.argv[1].lower() == "app":
+
+		sys.argv[1] = "ApP"
 
 	args = parser.parse_args()
-
 	args.func(parser, args)
+
 
 
 ## CLASS
@@ -195,7 +223,7 @@ def BAM(s):
 
 	except:
 
-		raise argparse.ArgumentTypeError('BAM files to SAGE -bam/--bamfile must be given as couples of BAM files: BAM1h1,BAM1h2 BAM2h1,BAM2h2 ...')
+		raise argparse.ArgumentTypeError('BAM files to sage -bam/--bamfile must be given as couples of BAM files: BAM1h1,BAM1h2 BAM2h1,BAM2h2 ...')
 
 
 def run_subtool(parser, args):
