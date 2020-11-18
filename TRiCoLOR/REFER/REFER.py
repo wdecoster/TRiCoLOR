@@ -35,7 +35,7 @@ from .Helper import writer
 
 def run(parser, args):
 
-	
+
 	if not os.path.exists(os.path.abspath(args.output)):
 
 		try:
@@ -44,36 +44,36 @@ def run(parser, args):
 
 		except:
 
-			print('Cannot create the output folder')	
+			print('Cannot create the output folder')
 			sys.exit(1)
 
 	else:
 
 		if not os.access(os.path.abspath(args.output),os.W_OK):
 
-			print('Missing write permissions on the output folder')			
+			print('Missing write permissions on the output folder')
 			sys.exit(1)
-			
+
 		elif os.listdir(os.path.abspath(args.output)):
 
 			print('The output folder is not empty. Specify another output folder or clean the one previsouly chosen')
 			sys.exit(1)
-	
+
 
 	os.makedirs(os.path.abspath(args.output) + '/reference')
 	os.makedirs(os.path.abspath(args.output) + '/haplotype1')
 	os.makedirs(os.path.abspath(args.output) + '/haplotype2')
-	command_dict= vars(args)	
+	command_dict= vars(args)
 	notkey=['func']
 	command_string= ' '.join("{}={}".format(key,val) for key,val in command_dict.items() if key not in notkey)
-	logging.basicConfig(filename=os.path.abspath(args.output + '/TRiCoLOR.REFER.log'), filemode='w', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')	
+	logging.basicConfig(filename=os.path.abspath(args.output + '/TRiCoLOR.REFER.log'), filemode='w', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 	print('Initialized .log file ' + os.path.abspath(args.output + '/TRiCoLOR.REFER.log'))
 
 	logging.info('main=TRiCoLOR ' + command_string)
 	external_tools=['minimap2', 'samtools', 'bcftools'] #? ALSO ADD NGMLR. NOT PRIORITY. MINIMAP2 IS FASTER AND MORE ACCURATE
 
-	for tools in external_tools: 
+	for tools in external_tools:
 
 		if which(tools) is None:
 
@@ -91,12 +91,15 @@ def run(parser, args):
 		logging.error('Reference file does not exist, is not readable or is not a valid FASTA')
 		exitonerror()
 
-	bams=args.bamfile[0]
+	if args.bamfile:
+		bams=args.bamfile[0]
 
-	if len(bams) != 2:
+		if len(bams) != 2:
 
-		logging.error('TRiCoLOR supports only diploid individuals')
-		exitonerror()
+			logging.error('TRiCoLOR supports only diploid individuals')
+			exitonerror()
+	else:
+		bams = [args.single_bamfile]
 
 	for bam in bams:
 
@@ -167,9 +170,9 @@ def run(parser, args):
 		else:
 
 			logging.info('Number of repetitions: ' + str(args.times))
-	
+
 	logging.info('Check for overlapping repeated motif: ' + str(args.overlapping))
-	regex=finder.RegexBuilder(args.motif,args.times,args.overlapping, args.precisemotif, args.precisetimes)		
+	regex=finder.RegexBuilder(args.motif,args.times,args.overlapping, args.precisemotif, args.precisetimes)
 	logging.info('Regex built: ' + regex)
 	logging.info('Maximum repeated motif length: ' + str(args.maxmotif))
 	logging.info('Allowed edit distance: ' + str(args.editdistance))
@@ -192,9 +195,9 @@ def run(parser, args):
 
 	Cpath=os.path.abspath(os.path.dirname(__file__) + '/consensus') #? FAST ENOUGH
 	SHCpath=os.path.abspath(os.path.dirname(__file__) + '/consensus.sh')
-	SHMpath=os.path.abspath(os.path.dirname(__file__) + '/merging.sh')	
+	SHMpath=os.path.abspath(os.path.dirname(__file__) + '/merging.sh')
 	ref=pyfaidx.Fasta(os.path.abspath(args.genome))
-	
+
 	if args.mmidir is None:
 
 		gendir=os.path.abspath(os.path.dirname(args.genome))
@@ -217,7 +220,7 @@ def run(parser, args):
 
 		b_in2=Bed_Reader(os.path.abspath(args.bedfile), chromosome=b_chrom)
 		p_reg=list(iter(b_in2))
-	
+
 		logging.info('Finding repetitions on chromosome ' + b_chrom + ' ...')
 		print('Finding repetitions on chromosome ' + b_chrom + ' ...')
 
@@ -285,9 +288,9 @@ def run(parser, args):
 			p=multiprocessing.Process(target=Runner, args=(processor,sli,refseq,regex,args.maxmotif,args.size,bamfile1,bamfile2,args.coverage,args.editdistance,chromind,args.readstype,os.path.abspath(args.output),Rrep,H1rep,H2rep,Cpath,SHCpath,args.match,args.mismatch,args.gapopen,args.gapextend,args.softclipping))
 			p.start()
 			processes.append(p)
-		
+
 		for p in processes:
-		
+
 			p.join()
 
 		for key in sorted(Rrep.keys(), key=natural_keys):
@@ -349,7 +352,7 @@ class Bed_Reader():
 
 			for line in csv.reader(bedin, delimiter='\t'): #? FIND ANOTHER, FASTER, WAY TO PARSE BED. NOT PRIORITY
 
-				if not line[0].startswith('#') and line !=[]: 
+				if not line[0].startswith('#') and line !=[]:
 
 					if len(line) < 3:
 
@@ -374,11 +377,11 @@ class Bed_Reader():
 
 def exitonerror():
 
-	
+
 	print('An error occured. Check the log file for more details')
 	sys.exit(1)
 
-	
+
 def atoi(text):
 
 
@@ -401,7 +404,7 @@ def Runner(processor,sli,refseq,regex,maxmotif,size,bamfile1,bamfile2,coverage,a
 	Ritem = Rrep[processor] = list()
 	H1item = H1rep[processor] = list()
 	H2item = H2rep[processor] =list()
-	
+
 	for i,s in enumerate(sli):
 
 		try:
@@ -411,7 +414,7 @@ def Runner(processor,sli,refseq,regex,maxmotif,size,bamfile1,bamfile2,coverage,a
 			if pR is not None:
 
 				if pR != []:
-		
+
 					Ritem.extend(pR)
 
 				out1=os.path.abspath(output + '/haplotype1')
@@ -421,7 +424,7 @@ def Runner(processor,sli,refseq,regex,maxmotif,size,bamfile1,bamfile2,coverage,a
 
 					H1item.extend(pH1)
 
-				out2=os.path.abspath(output + '/haplotype2')				
+				out2=os.path.abspath(output + '/haplotype2')
 				pH2,pS2,pC2,pCOV2,pQ2=HaploReps(SHCpath,Cpath, bamfile2,s, coverage, regex, maxmotif, size, allowed, refseq, chromind, out2, processor,i,readtype,match,mismatch,gapopen,gapextend, clipping)
 
 				if pH2 != []:
@@ -443,7 +446,7 @@ def Runner(processor,sli,refseq,regex,maxmotif,size,bamfile1,bamfile2,coverage,a
 		except BaseException as BE:
 
 			logging.error('Processor ' + processor + ' generated an error for region ' + s[0] +  ':' + str(s[1]) + '-' + str(s[2]) + '. Check TRiCoLOR.' + processor + '.unexpected.err.log in ' + os.path.abspath(output) + ' for details')
-			
+
 			with open (os.path.abspath(output + '/TRiCoLOR.' + processor + '.unexpected.err.log'), 'a') as errorout:
 
 				errorout.write('Unexpected error in region '+ s[0] +  ':' + str(s[1]) + '-' + str(s[2]) + '.' + '\n' + str(BE) + '\n')
@@ -471,7 +474,7 @@ def ReferenceReps(s,refseq,regex,maxmotif,size):
 
 		repetitions=list(finder.RepeatsFinder(wanted,regex,maxmotif))
 		filtered=finder.ReferenceFilter(repetitions,wanted,size,start)
-		
+
 		return filtered
 
 

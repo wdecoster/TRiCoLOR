@@ -29,27 +29,27 @@ def run(parser, args):
 
 		except:
 
-			print('Cannot create the output folder')		
+			print('Cannot create the output folder')
 			sys.exit(1)
 
 	else:
 
 		if not os.access(os.path.abspath(args.output),os.W_OK):
 
-			print('Missing write permissions on the output folder')			
+			print('Missing write permissions on the output folder')
 			sys.exit(1)
-			
+
 		elif os.listdir(os.path.abspath(args.output)):
 
 			print('The output folder is not empty. Specify another output folder or clean the one previsouly chosen')
 			sys.exit(1)
-			
+
 	command_dict= vars(args)
-	
+
 	notkey=['func']
 	command_string= ' '.join("{}={}".format(key,val) for key,val in command_dict.items() if key not in notkey)
 	logging.basicConfig(filename=os.path.abspath(args.output + '/TRiCoLOR.SENSoR.log'), filemode='w', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-	
+
 	print('Initialized .log file ' + os.path.abspath(args.output + '/TRiCoLOR.SENSoR.log'))
 
 	logging.info('main=TRiCoLOR ' + command_string)
@@ -61,13 +61,15 @@ def run(parser, args):
 
 			logging.error(tools + ' cannot be executed. Install ' + tools + ' and re-run TRiCoLOR SENSoR')
 			exitonerror()
+	if args.bamfile:
+		bams=args.bamfile[0]
 
-	bams=args.bamfile[0]
+		if len(bams) != 2:
 
-	if len(bams) != 2:
-
-		logging.error('TRiCoLOR supports only diploid individuals')
-		exitonerror()
+			logging.error('TRiCoLOR supports only diploid individuals')
+			exitonerror()
+	else:
+		bams = [args.single_bamfile]
 
 	for bam in bams:
 
@@ -118,8 +120,14 @@ def run(parser, args):
 	print('Scanning ...')
 
 	try:
+		if args.bamfile:
+			runInParallel(BScanner, (bams[0], args.chromosomes, os.path.abspath(args.output + '/H1.bed'), args.scansize, args.entropy, args.call, args.length),
+									(bams[1], args.chromosomes, os.path.abspath(args.output + '/H2.bed'), args.scansize, args.entropy, args.call, args.length))
+		else:
+			haplotypes = [1,2]
+			runInParallel(BScanner, (bams[0], args.chromosomes, os.path.abspath(args.output + '/H1.bed'), args.scansize, args.entropy, args.call, args.length, haplotypes[0]),
+									(bams[0], args.chromosomes, os.path.abspath(args.output + '/H2.bed'), args.scansize, args.entropy, args.call, args.length, haplotypes[1]))
 
-		runInParallel(BScanner, (bams[0], args.chromosomes, os.path.abspath(args.output + '/H1.bed'), args.scansize, args.entropy, args.call, args.length),(bams[1], args.chromosomes, os.path.abspath(args.output + '/H2.bed'), args.scansize, args.entropy, args.call,args.length))
 
 	except:
 
@@ -130,22 +138,22 @@ def run(parser, args):
 	logging.info('Writing final BED to output folder ...')
 
 	with open(os.path.abspath(args.output + '/H1.srt.bed'), 'w') as srtbed1:
-		
+
 		subprocess.call(['bedtools', 'sort', '-i', os.path.abspath(args.output + '/H1.bed')],stdout=srtbed1, stderr=open(os.devnull, 'wb'))
 
 	with open(os.path.abspath(args.output + '/H2.srt.bed'), 'w') as srtbed2:
-		
+
 		subprocess.call(['bedtools', 'sort', '-i', os.path.abspath(args.output + '/H2.bed')],stdout=srtbed2, stderr=open(os.devnull, 'wb'))
 
 	os.remove(os.path.abspath(args.output + '/H1.bed'))
 	os.remove(os.path.abspath(args.output + '/H2.bed'))
 
 	with open(os.path.abspath(args.output + '/H1.srt.merged.bed'), 'w') as mergedbed1:
-		
+
 		subprocess.call(['bedtools', 'merge', '-i', os.path.abspath(args.output + '/H1.srt.bed'), '-c', '4,4,4', '-o', 'mean,stdev,collapse', '-d', str(args.innerdistance)],stdout=mergedbed1, stderr=open(os.devnull, 'wb'))
 
 	with open(os.path.abspath(args.output + '/H2.srt.merged.bed'), 'w') as mergedbed2:
-		
+
 		subprocess.call(['bedtools', 'merge', '-i', os.path.abspath(args.output + '/H2.srt.bed'), '-c', '4,4,4', '-o', 'mean,stdev,collapse', '-d', str(args.innerdistance)],stdout=mergedbed2, stderr=open(os.devnull, 'wb'))
 
 	os.remove(os.path.abspath(args.output + '/H1.srt.bed'))
@@ -208,11 +216,11 @@ def modifier(coordinates):
 	start = next(ele for ele in coordinates if ele is not None)
 
 	for ind, ele in enumerate(coordinates):
-		
+
 		if ele is None:
 
 			coordinates[ind] = start
-		
+
 		else:
 
 			start = ele
@@ -248,7 +256,7 @@ def entropy_finder(sequence,coordinates,scansize,entropy_treshold):
 	return hit
 
 
-def BScanner(bamfilein, chromosomes, bedfileout,scansize,entropy_treshold,call_treshold, dist_treshold):
+def BScanner(bamfilein, chromosomes, bedfileout,scansize,entropy_treshold,call_treshold, dist_treshold, haplotype=None):
 
 
 	bamfile=pysam.AlignmentFile(bamfilein,'rb')
@@ -275,7 +283,9 @@ def BScanner(bamfilein, chromosomes, bedfileout,scansize,entropy_treshold,call_t
 		for reads in bamfile.fetch(chromosome):
 
 			if not reads.is_unmapped and not reads.is_secondary and not reads.is_supplementary:
-
+				if haplotype:
+					if not reads.has_tag('HP') or reads.get_tag('HP') != haplotype:
+						continue
 				coordinates=modifier(reads.get_reference_positions(full_length=True))
 				hits=entropy_finder(reads.seq,coordinates,scansize,entropy_treshold)
 
@@ -300,6 +310,6 @@ def BScanner(bamfilein, chromosomes, bedfileout,scansize,entropy_treshold,call_t
 
 			for inter in intervals:
 
-					bedout.write(chromosome + '\t' +  str(inter[0]) + '\t' + str(inter[1]) + '\t' + str(inter[2]) + '\n') 
+					bedout.write(chromosome + '\t' +  str(inter[0]) + '\t' + str(inter[1]) + '\t' + str(inter[2]) + '\n')
 
 	bamfile.close()

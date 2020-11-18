@@ -18,9 +18,9 @@ def main():
 	parser_sensor = subparsers.add_parser('SENSoR', help='Shannon ENtropy ScanneR. Scan haplotype-resolved BAM, calculate Shannon entropy along chromosomes and identify putative repetitive regions')
 
 	required = parser_sensor.add_argument_group('Required I/O arguments')
-    mrequired = required.add_mutually_exclusive_group(required=True)
+	mrequired = required.add_mutually_exclusive_group(required=True)
 	mrequired.add_argument('-bam', '--bamfile', help='haplotype-resolved BAM', metavar='BAM', nargs='+', action='append')
-    mrequired.add_argument('-sbam', '--single_bamfile', help='BAM with H1/H2 tags', metavar='BAM',)
+	mrequired.add_argument('-sbam', '--single_bamfile', help='BAM with H1/H2 tags', metavar='BAM',)
 	required.add_argument('-o', '--output', metavar='folder', help='output folder',required=True)
 
 	algorithm = parser_sensor.add_argument_group('Parameters for BAM scanning')
@@ -47,9 +47,9 @@ def main():
 
 	required.add_argument('-g','--genome', help='reference genome', metavar='FASTA',required=True)
 	required.add_argument('-bed','--bedfile', help='BED generated with SENSoR or equivalent proprietary BED containing putative repetitive regions', metavar='BED',required=True)
-    mrequired = required.add_mutually_exclusive_group(required=True)
+	mrequired = required.add_mutually_exclusive_group(required=True)
 	mrequired.add_argument('-bam', '--bamfile', help='haplotype-resolved BAM', metavar='BAM', nargs='+', action='append')
-    mrequired.add_argument('-sbam', '--single_bamfile', help='BAM with H1/H2 tags', metavar='BAM',)
+	mrequired.add_argument('-sbam', '--single_bamfile', help='BAM with H1/H2 tags', metavar='BAM',)
 
 	required.add_argument('-o','--output', help='output folder',metavar='folder',required=True)
 
@@ -136,17 +136,17 @@ def main():
 	tables.add_argument('-hb', '--haplotypebed', metavar='', default=None, help='one or more ordered BED generated with REFER with repetitions in BAM to -bam/--bamfile [None]',nargs='+', action='append')
 
 	parser_app.set_defaults(func=run_subtool)
-	
+
 	#print help if no subcommand nor --help provided
-	
+
 	if len(sys.argv)==1:
-    	
+
 		parser.print_help(sys.stderr)
 		sys.exit(1)
 
-	
+
 	#case-insensitive submodules
-	
+
 	if sys.argv[1].lower() == "sensor":
 
 		sys.argv[1] = "SENSoR"

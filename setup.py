@@ -2,8 +2,8 @@ from setuptools import setup,find_packages
 
 
 
-setup(name='TRiCoLOR',      
-  version='1.0.0',
+setup(name='TRiCoLOR',
+  version='1.1.0',
   description='Tandem Repeats Caller for LOng Reads',
   url='https://github.com/davidebolo1993/TRiCoLOR',
   requires=['python (>= 3.6)'],
@@ -14,5 +14,5 @@ setup(name='TRiCoLOR',
   zip_safe=False,
   packages=find_packages(),
   include_package_data=True,
-  entry_points={'console_scripts': ['TRiCoLOR=TRiCoLOR.TRiCoLOR:main']}          
+  entry_points={'console_scripts': ['TRiCoLOR=TRiCoLOR.TRiCoLOR:main']}
 )
